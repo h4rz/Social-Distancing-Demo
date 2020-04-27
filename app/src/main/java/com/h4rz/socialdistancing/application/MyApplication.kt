@@ -9,11 +9,17 @@ import android.os.Handler
 import android.util.Log
 import com.h4rz.socialdistancing.activities.MainActivity
 import com.h4rz.socialdistancing.notification.NotificationManager
+import com.h4rz.socialdistancing.utility.Constants.ALT_BEACON_LAYOUT
+import com.h4rz.socialdistancing.utility.Constants.CUSTOM_IDENTIFIER
+import com.h4rz.socialdistancing.utility.Constants.FOREGROUND_NOTIFICATION_ID
+import com.h4rz.socialdistancing.utility.Constants.NOTIFICATION_INTERVAL_IN_MS
+import com.h4rz.socialdistancing.utility.Constants.SAFE_DISTANCE_IN_METERS
 import org.altbeacon.beacon.*
 import org.altbeacon.beacon.powersave.BackgroundPowerSaver
 import org.altbeacon.beacon.startup.BootstrapNotifier
 import org.altbeacon.beacon.startup.RegionBootstrap
 import java.util.*
+import kotlin.math.abs
 
 
 /**
@@ -22,47 +28,51 @@ import java.util.*
 
 class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
 
-    private val TAG = MainActivity::class.java.simpleName
+    private val tag = MainActivity::class.java.simpleName
     private val deviceID = UUID.randomUUID().toString()
-    private val safeDistanceInMetres = 3.0
     private var regionBootstrap: RegionBootstrap? = null
     private lateinit var backgroundPowerSaver: BackgroundPowerSaver
     private lateinit var beaconManager: BeaconManager
     private var haveDetectedBeaconsSinceBoot = false
-    private var notificationID = 456
     private lateinit var region: Region
     private var mainActivity: MainActivity? = null
     private lateinit var context: Context
     private var isNotificationSent = false
-    private var sendNotificationAfterInMs = 15000L
 
     override fun onCreate() {
         super.onCreate()
-        context = this
-        isNotificationSent = false
+        initializeVariables()
         enableForegroundScanningService()
         beaconTransmissionInBackground()
         resetTimer()
     }
 
+    private fun initializeVariables() {
+        context = this
+        isNotificationSent = false
+    }
+
     private fun resetTimer() {
         Handler().postDelayed({
+            if (isNotificationSent)
+                NotificationManager().removeWarningNotifications(context)
             isNotificationSent = false
             resetTimer()
-        }, sendNotificationAfterInMs)
+        }, NOTIFICATION_INTERVAL_IN_MS)
     }
 
     private fun enableForegroundScanningService() {
         beaconManager = BeaconManager.getInstanceForApplication(this)
+        beaconManager.beaconParsers.clear()
+        beaconManager.beaconParsers.add(BeaconParser().setBeaconLayout(ALT_BEACON_LAYOUT))
         val title = "Scanning..."
         val body = "Scanning for persons nearby."
         val builder = NotificationManager().getNotificationBuilder(this, title, body)
-        beaconManager.enableForegroundServiceScanning(builder.build(), notificationID)
+        beaconManager.enableForegroundServiceScanning(builder.build(), FOREGROUND_NOTIFICATION_ID)
 
         beaconManager.setEnableScheduledScanJobs(false)
         beaconManager.backgroundBetweenScanPeriod = 0
         beaconManager.backgroundScanPeriod = 1100
-
         region = Region(deviceID, null, null, null)
         regionBootstrap = RegionBootstrap(this, region)
         backgroundPowerSaver = BackgroundPowerSaver(this)
@@ -70,7 +80,7 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
 
     private fun beaconTransmissionInBackground() {
         val beacon = Beacon.Builder()
-            .setId1("2f234454-cf6d-4a0f-adf2-f4911ba9ffa6")
+            .setId1(CUSTOM_IDENTIFIER.toString())
             .setId2("1")
             .setId3("2")
             .setManufacturer(0x0118) // Radius Networks.  Change this for other beacon layouts
@@ -78,61 +88,50 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
             .setDataFields(listOf(0L)) // Remove this for beacon layouts without d: fields
             .build()
         // Change the layout below for other beacon types
-        // Change the layout below for other beacon types
         val beaconParser = BeaconParser()
-            .setBeaconLayout("m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25")
+            .setBeaconLayout(ALT_BEACON_LAYOUT)
         val beaconTransmitter = BeaconTransmitter(applicationContext, beaconParser)
         beaconTransmitter.startAdvertising(beacon, object : AdvertiseCallback() {
             override fun onStartFailure(errorCode: Int) {
-                Log.e(TAG, "Advertisement start failed with code: $errorCode")
+                Log.e(tag, "Advertisement start failed with code: $errorCode")
             }
 
             override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
-                Log.i(TAG, "Advertisement start succeeded.")
+                Log.i(tag, "Advertisement start succeeded.")
             }
         })
     }
 
     override fun didDetermineStateForRegion(state: Int, region: Region?) {
-        Log.i(TAG, "Current region state is: " + if (state == 1) "INSIDE" else "OUTSIDE ($state)")
+        Log.i(
+            tag,
+            "Current region state is: " + if (state == 1) "INSIDE" else "OUTSIDE ($state)"
+        )
     }
 
     override fun didEnterRegion(region: Region?) {
-        Log.i(TAG, "Did enter region.")
+        Log.i(tag, "Did enter region.")
         isNotificationSent = false
         try {
             beaconManager.addRangeNotifier(this)
-            if (region != null) {
+            if (region != null)
                 beaconManager.startRangingBeaconsInRegion(region)
-            }
         } catch (e: Exception) {
-            Log.i(TAG, "Exception While Ranging " + e.message)
+            Log.i(tag, "Exception While Ranging " + e.message)
         }
-        if (!haveDetectedBeaconsSinceBoot) {
-            Log.d(TAG, "auto launching MainActivity")
-            val intent = Intent(this, MainActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            this.startActivity(intent)
-            haveDetectedBeaconsSinceBoot = true
-        } else {
-            if (mainActivity == null) {
-                haveDetectedBeaconsSinceBoot = false
-            }
-        }
-
     }
 
     override fun didExitRegion(region: Region?) {
-        Log.i(TAG, "I no longer see a beacon")
+        Log.i(tag, "I no longer see a beacon")
         isNotificationSent = false
     }
 
-    fun disableMonitoring() {
+    /*fun disableMonitoring() {
         if (regionBootstrap != null) {
             regionBootstrap!!.disable()
             regionBootstrap = null
         }
-    }
+    }*/
 
     fun enableMonitoring() {
         region = Region(deviceID, null, null, null)
@@ -143,25 +142,42 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
         this.mainActivity = activity
     }
 
-    override fun didRangeBeaconsInRegion(beacons: MutableCollection<Beacon>?, p1: Region?) {
+    override fun didRangeBeaconsInRegion(beacons: MutableCollection<Beacon>?, region: Region?) {
         if (beacons != null) {
             if (beacons.isNotEmpty()) {
                 for (beacon in beacons) {
-                    val distance = beacon.distance
-                    if (distance < safeDistanceInMetres) {
-                        val title = "Warning"
-                        val message =
-                            "I see a person that is ${String.format(
-                                "%.2f",
-                                beacon.distance
-                            )} metres away. Please maintain $safeDistanceInMetres meters distance."
-                        if (!isNotificationSent) {
-                            NotificationManager().buildNotification(context, title, message)
-                            isNotificationSent = true
+                    if (beacon.id1 == CUSTOM_IDENTIFIER) {
+                        launchApplicationIfClosed()
+                        val distance = abs(beacon.distance)
+                        if (distance < SAFE_DISTANCE_IN_METERS) {
+                            val title = "Warning"
+                            val message =
+                                "I see a person that is ${String.format(
+                                    "%.2f",
+                                    beacon.distance
+                                )} metres away. Please maintain $SAFE_DISTANCE_IN_METERS meters distance."
+                            if (!isNotificationSent) {
+                                NotificationManager().buildNotification(context, title, message)
+                                isNotificationSent = true
+                            }
+                            //Toast.makeText(context, message,Toast.LENGTH_SHORT).show()
                         }
-                        //Toast.makeText(context, message,Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
+        }
+    }
+
+    private fun launchApplicationIfClosed() {
+        if (!haveDetectedBeaconsSinceBoot) {
+            Log.d(tag, "auto launching MainActivity")
+            val intent = Intent(this, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            this.startActivity(intent)
+            haveDetectedBeaconsSinceBoot = true
+        } else {
+            if (mainActivity == null) {
+                haveDetectedBeaconsSinceBoot = false
             }
         }
     }

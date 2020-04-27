@@ -29,6 +29,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".activities.BaseActivity" />
+
         <service
             android:name="org.altbeacon.beacon.service.BeaconService"
             tools:node="replace">

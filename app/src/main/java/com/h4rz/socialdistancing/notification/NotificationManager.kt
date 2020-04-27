@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.h4rz.socialdistancing.R
 import com.h4rz.socialdistancing.activities.MainActivity
+import com.h4rz.socialdistancing.utility.Constants.WARNING_NOTIFICATION_ID
 
 
 /**
@@ -31,8 +32,10 @@ class NotificationManager {
         message: String
     ) {
         val builder = getNotificationBuilder(context, title, message)
+        //clear previous notifications
+        removeWarningNotifications(context)
         // Show notification
-        showNotification(context, System.currentTimeMillis().toInt(), builder)
+        showNotification(context, builder)
     }
 
     fun getNotificationBuilder(
@@ -67,12 +70,17 @@ class NotificationManager {
 
     private fun showNotification(
         context: Context,
-        notificationId: Int,
         builder: NotificationCompat.Builder
     ) {
         with(NotificationManagerCompat.from(context)) {
-            notify(notificationId, builder.build())
+            notify(WARNING_NOTIFICATION_ID, builder.build())
         }
+    }
+
+    fun removeWarningNotifications(context: Context) {
+        val notificationManager: NotificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(WARNING_NOTIFICATION_ID)
     }
 
     private fun createNotificationChannel(context: Context) {

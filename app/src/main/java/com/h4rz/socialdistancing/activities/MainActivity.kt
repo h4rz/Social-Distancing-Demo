@@ -1,23 +1,23 @@
 package com.h4rz.socialdistancing.activities
 
 import android.Manifest
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS
+import androidx.appcompat.app.AlertDialog
 import com.h4rz.socialdistancing.R
 import com.h4rz.socialdistancing.application.MyApplication
+import com.h4rz.socialdistancing.utility.Constants.BLUETOOTH_INTENT_REQUEST_CODE
 import com.livinglifetechway.quickpermissions_kotlin.runWithPermissions
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
 
-    private val TAG = MainActivity::class.java.simpleName
     private lateinit var context: Context
-    private var BLUETOOTH_INTENT_REQUEST_CODE = 123
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,19 +38,29 @@ class MainActivity : AppCompatActivity() {
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             runWithPermissions(Manifest.permission.FOREGROUND_SERVICE) {
-                enableBluetooth()
+                enableBluetoothAndLocation()
             }
         } else {
-            enableBluetooth()
+            enableBluetoothAndLocation()
         }
     }
 
-    private fun enableBluetooth() {
-        val eintent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-        startActivityForResult(eintent, BLUETOOTH_INTENT_REQUEST_CODE)
+    private fun enableBluetoothAndLocation() {
+        enableBluetooth()
+        enableLocation()
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    private fun enableLocation() {
+        if (!canGetLocation())
+            showSettingsAlert()
+    }
+
+    private fun enableBluetooth() {
+        val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+        startActivityForResult(intent, BLUETOOTH_INTENT_REQUEST_CODE)
+    }
+
+    /*override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
             BLUETOOTH_INTENT_REQUEST_CODE -> {
@@ -58,6 +68,40 @@ class MainActivity : AppCompatActivity() {
                     enableBluetooth()
             }
         }
+    }*/
+
+    private fun canGetLocation(): Boolean {
+        var gpsEnabled = false
+        var networkEnabled = false
+        val lm: LocationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        try {
+            gpsEnabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        } catch (ex: Exception) {
+        }
+        try {
+            networkEnabled = lm
+                .isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        } catch (ex: Exception) {
+        }
+        return !(!gpsEnabled || !networkEnabled)
+    }
+
+    private fun showSettingsAlert() {
+        val alertDialog: AlertDialog.Builder = AlertDialog.Builder(this)
+        alertDialog.setCancelable(false)
+        // Setting Dialog Title
+        alertDialog.setTitle("Location Access Needed")
+        // Setting Dialog Message
+        alertDialog.setMessage("Please enable location services to identify distance between the nearby person.")
+
+        // On pressing Settings button
+        alertDialog.setPositiveButton("OK") { _, _ ->
+            val intent = Intent(
+                ACTION_LOCATION_SOURCE_SETTINGS
+            )
+            startActivity(intent)
+        }
+        alertDialog.show()
     }
 
     override fun onDestroy() {
