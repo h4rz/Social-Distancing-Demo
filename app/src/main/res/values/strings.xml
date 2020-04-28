@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Social Distancing</string>
+    <string name="disable_battery_saver_better_results">Disable Battery Saver (Select \'No Restrictions\')</string>
 </resources>
