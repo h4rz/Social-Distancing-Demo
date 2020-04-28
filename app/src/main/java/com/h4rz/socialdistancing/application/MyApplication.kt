@@ -33,7 +33,6 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
     private var regionBootstrap: RegionBootstrap? = null
     private lateinit var backgroundPowerSaver: BackgroundPowerSaver
     private lateinit var beaconManager: BeaconManager
-    private var haveDetectedBeaconsSinceBoot = false
     private lateinit var region: Region
     private var mainActivity: MainActivity? = null
     private lateinit var context: Context
@@ -147,7 +146,6 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
             if (beacons.isNotEmpty()) {
                 for (beacon in beacons) {
                     if (beacon.id1 == CUSTOM_IDENTIFIER) {
-                        launchApplicationIfClosed()
                         val distance = abs(beacon.distance)
                         if (distance < SAFE_DISTANCE_IN_METERS) {
                             val title = "Warning"
@@ -167,19 +165,4 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
             }
         }
     }
-
-    private fun launchApplicationIfClosed() {
-        if (!haveDetectedBeaconsSinceBoot) {
-            Log.d(tag, "auto launching MainActivity")
-            val intent = Intent(this, MainActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            this.startActivity(intent)
-            haveDetectedBeaconsSinceBoot = true
-        } else {
-            if (mainActivity == null) {
-                haveDetectedBeaconsSinceBoot = false
-            }
-        }
-    }
-
 }
