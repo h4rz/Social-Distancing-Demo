@@ -2,18 +2,20 @@ package com.h4rz.socialdistancing.activities
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
-import android.content.ActivityNotFoundException
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
+import android.content.*
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS
 import android.view.View
 import androidx.appcompat.app.AlertDialog
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.h4rz.socialdistancing.R
 import com.h4rz.socialdistancing.application.MyApplication
+import com.h4rz.socialdistancing.receiver.MyBroadcastReceiver
+import com.h4rz.socialdistancing.service.LocationUpdatesService
+import com.h4rz.socialdistancing.utility.Constants.ACTION_BROADCAST
 import com.h4rz.socialdistancing.utility.Constants.BLUETOOTH_INTENT_REQUEST_CODE
 import com.livinglifetechway.quickpermissions_kotlin.runWithPermissions
 import kotlinx.android.synthetic.main.activity_main.*
@@ -23,6 +25,35 @@ class MainActivity : BaseActivity(), View.OnClickListener {
 
     private lateinit var context: Context
     private var isXiaomiDevice = false
+    private lateinit var myReceiver: MyBroadcastReceiver
+    private var mService: LocationUpdatesService? = null
+    private var mBound = false
+
+    // Monitors the state of the connection to the service.
+    private val mServiceConnection: ServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            val binder: LocationUpdatesService.LocalBinder =
+                service as LocationUpdatesService.LocalBinder
+            mService = binder.service
+            mBound = true
+            enableLocation()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            mService = null
+            mBound = false
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Bind to the service. If the service is in foreground mode, this signals to the service
+        // that since this activity is in the foreground, the service can exit foreground mode.
+        bindService(
+            Intent(this, LocationUpdatesService::class.java), mServiceConnection,
+            Context.BIND_AUTO_CREATE
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,14 +63,14 @@ class MainActivity : BaseActivity(), View.OnClickListener {
     }
 
     private fun checkIfXiaomiDevice() {
-        if(Build.MANUFACTURER.toLowerCase() == "xiaomi")
+        if (Build.MANUFACTURER.toLowerCase() == "xiaomi")
             btnDisableBatterySaver.visibility = View.VISIBLE
         else
             btnDisableBatterySaver.visibility = View.GONE
     }
 
     private fun disableBatterySaverForMiDevices() {
-        if(Build.MANUFACTURER.toLowerCase() == "xiaomi") {
+        if (Build.MANUFACTURER.toLowerCase() == "xiaomi") {
             try {
                 val intent = Intent()
                 intent.component = ComponentName(
@@ -61,6 +92,9 @@ class MainActivity : BaseActivity(), View.OnClickListener {
 
         // Show Battery saver button only when manufacturer is XIAOMI
         checkIfXiaomiDevice()
+
+        // for location tracking
+        myReceiver = MyBroadcastReceiver()
     }
 
     private fun askForPermissions() = runWithPermissions(
@@ -86,6 +120,8 @@ class MainActivity : BaseActivity(), View.OnClickListener {
     private fun enableLocation() {
         if (!canGetLocation())
             showSettingsAlert()
+        // Permission was granted.
+        mService?.requestLocationUpdates()
     }
 
     private fun enableBluetooth() {
@@ -144,19 +180,33 @@ class MainActivity : BaseActivity(), View.OnClickListener {
     }
 
     override fun onPause() {
-        super.onPause()
         (applicationContext as MyApplication).setMainActivity(null)
         (applicationContext as MyApplication).enableMonitoring()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(myReceiver)
+        super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
         (applicationContext as MyApplication).setMainActivity(this)
         (applicationContext as MyApplication).enableMonitoring()
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(myReceiver, IntentFilter(ACTION_BROADCAST))
+    }
+
+    override fun onStop() {
+        if (mBound) {
+            // Unbind from the service. This signals to the service that this activity is no longer
+            // in the foreground, and the service can respond by promoting itself to a foreground
+            // service.
+            unbindService(mServiceConnection)
+            mBound = false
+        }
+        super.onStop()
     }
 
     override fun onClick(v: View?) {
-        when(v?.id) {
+        when (v?.id) {
             R.id.btnDisableBatterySaver -> {
                 disableBatterySaverForMiDevices()
             }
