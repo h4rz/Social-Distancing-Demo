@@ -4,7 +4,6 @@ import android.app.Application
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseSettings
 import android.content.Context
-import android.content.Intent
 import android.os.Handler
 import android.util.Log
 import com.h4rz.socialdistancing.activities.MainActivity
@@ -78,14 +77,7 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
     }
 
     private fun beaconTransmissionInBackground() {
-        val beacon = Beacon.Builder()
-            .setId1(CUSTOM_IDENTIFIER.toString())
-            .setId2("1")
-            .setId3("2")
-            .setManufacturer(0x0118) // Radius Networks.  Change this for other beacon layouts
-            .setTxPower(-59)
-            .setDataFields(listOf(0L)) // Remove this for beacon layouts without d: fields
-            .build()
+        val beacon = getCovidExposureBeaconConfiguration()
         // Change the layout below for other beacon types
         val beaconParser = BeaconParser()
             .setBeaconLayout(BEACON_LAYOUT)
@@ -99,6 +91,24 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
                 Log.i(tag, "Advertisement start succeeded.")
             }
         })
+    }
+
+    private fun getAltBeaconConfiguration(): Beacon? {
+        return Beacon.Builder()
+            .setId1(CUSTOM_IDENTIFIER.toString())
+            .setId2("1")
+            .setId3("2")
+            .setManufacturer(0x0118) // Radius Networks.  Change this for other beacon layouts
+            .setTxPower(-59)
+            .setDataFields(listOf(0L)) // Remove this for beacon layouts without d: fields
+            .build()
+    }
+
+    private fun getCovidExposureBeaconConfiguration(): Beacon? {
+        return Beacon.Builder()
+            .setId1(CUSTOM_IDENTIFIER.toString())
+            .setDataFields(listOf(0L)) // Remove this for beacon layouts without d: fields
+            .build()
     }
 
     override fun didDetermineStateForRegion(state: Int, region: Region?) {
@@ -146,19 +156,22 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
             if (beacons.isNotEmpty()) {
                 for (beacon in beacons) {
                     if (beacon.id1 == CUSTOM_IDENTIFIER) {
-                        val distance = abs(beacon.distance)
-                        if (distance < SAFE_DISTANCE_IN_METERS) {
-                            val title = "Warning"
-                            val message =
-                                "I see a person that is ${String.format(
-                                    "%.2f",
-                                    beacon.distance
-                                )} metres away. Please maintain $SAFE_DISTANCE_IN_METERS meters distance."
-                            if (!isNotificationSent) {
-                                NotificationManager().buildNotification(context, title, message)
-                                isNotificationSent = true
-                            }
-                            //Toast.makeText(context, message,Toast.LENGTH_SHORT).show()
+                        // Signal transmitted from our app
+                    } else {
+                        // Signal transmitted from other app
+                    }
+
+                    val distance = abs(beacon.distance)
+                    if (distance < SAFE_DISTANCE_IN_METERS) {
+                        val title = "Warning"
+                        val message =
+                            "I see a person that is ${String.format(
+                                "%.2f",
+                                beacon.distance
+                            )} metres away. Please maintain $SAFE_DISTANCE_IN_METERS meters distance."
+                        if (!isNotificationSent) {
+                            NotificationManager().buildNotification(context, title, message)
+                            isNotificationSent = true
                         }
                     }
                 }
