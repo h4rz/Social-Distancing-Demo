@@ -24,4 +24,40 @@ object Constants {
     val CUSTOM_IDENTIFIER: Identifier =
         Identifier.parse(getHexadecimalIdentifierString("com.h4rz.socialdistancing"))
     //val CUSTOM_IDENTIFIER: Identifier = Identifier.parse("2f234454-cf6d-4a0f-adf2-f4911ba9ffa6") // Default ID of altbeacon
+
+    const val PACKAGE_NAME =
+        "com.google.android.gms.location.sample.locationupdatesforegroundservice"
+
+    /**
+     * The name of the channel for notifications.
+     */
+    const val CHANNEL_ID = "channel_01"
+    const val ACTION_BROADCAST =
+        "$PACKAGE_NAME.broadcast"
+    const val EXTRA_LOCATION =
+        "$PACKAGE_NAME.location"
+    const val EXTRA_STARTED_FROM_NOTIFICATION =
+        PACKAGE_NAME +
+                ".started_from_notification"
+
+    /**
+     * The desired interval for location updates. Inexact. Updates may be more or less frequent.
+     */
+    const val UPDATE_INTERVAL_IN_MILLISECONDS: Long = 10000
+
+    /**
+     * The fastest rate for active location updates. Updates will never be more frequent
+     * than this value.
+     */
+    const val FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS = UPDATE_INTERVAL_IN_MILLISECONDS / 2
+
+    const val NOTIFICATION_ID = 12345678
+
+    const val KEY_REQUESTING_LOCATION_UPDATES = "requesting_location_updates"
+
+    const val LATITUDE = "latitude"
+
+    const val LONGITUDE = "longitude"
+
+    const val ADDRESS = "address"
 }
