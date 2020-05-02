@@ -7,6 +7,8 @@ import org.altbeacon.beacon.Identifier
  */
 object Constants {
     const val ALT_BEACON_LAYOUT = "m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25"
+    const val COVID_EXPOSURE_LAYOUT = "s:0-1=fd6f,p:-:-59,i:2-17,d:18-21"
+    const val BEACON_LAYOUT = COVID_EXPOSURE_LAYOUT
     const val NOTIFICATION_INTERVAL_IN_MS = 15000L
     const val FOREGROUND_NOTIFICATION_ID = 456
     const val WARNING_NOTIFICATION_ID = 999

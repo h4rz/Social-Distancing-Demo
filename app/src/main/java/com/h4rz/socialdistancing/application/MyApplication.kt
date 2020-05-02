@@ -9,7 +9,7 @@ import android.os.Handler
 import android.util.Log
 import com.h4rz.socialdistancing.activities.MainActivity
 import com.h4rz.socialdistancing.notification.NotificationManager
-import com.h4rz.socialdistancing.utility.Constants.ALT_BEACON_LAYOUT
+import com.h4rz.socialdistancing.utility.Constants.BEACON_LAYOUT
 import com.h4rz.socialdistancing.utility.Constants.CUSTOM_IDENTIFIER
 import com.h4rz.socialdistancing.utility.Constants.FOREGROUND_NOTIFICATION_ID
 import com.h4rz.socialdistancing.utility.Constants.NOTIFICATION_INTERVAL_IN_MS
@@ -63,7 +63,7 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
     private fun enableForegroundScanningService() {
         beaconManager = BeaconManager.getInstanceForApplication(this)
         beaconManager.beaconParsers.clear()
-        beaconManager.beaconParsers.add(BeaconParser().setBeaconLayout(ALT_BEACON_LAYOUT))
+        beaconManager.beaconParsers.add(BeaconParser().setBeaconLayout(BEACON_LAYOUT))
         val title = "Scanning..."
         val body = "Scanning for persons nearby."
         val builder = NotificationManager().getNotificationBuilder(this, title, body)
@@ -88,7 +88,7 @@ class MyApplication : Application(), BootstrapNotifier, RangeNotifier {
             .build()
         // Change the layout below for other beacon types
         val beaconParser = BeaconParser()
-            .setBeaconLayout(ALT_BEACON_LAYOUT)
+            .setBeaconLayout(BEACON_LAYOUT)
         val beaconTransmitter = BeaconTransmitter(applicationContext, beaconParser)
         beaconTransmitter.startAdvertising(beacon, object : AdvertiseCallback() {
             override fun onStartFailure(errorCode: Int) {
