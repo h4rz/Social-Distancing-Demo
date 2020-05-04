@@ -11,7 +11,10 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.h4rz.socialdistancing.R
 import com.h4rz.socialdistancing.activities.MainActivity
+import com.h4rz.socialdistancing.receiver.NotificationActionReceiver
+import com.h4rz.socialdistancing.utility.Constants
 import com.h4rz.socialdistancing.utility.Constants.WARNING_NOTIFICATION_ID
+import com.h4rz.socialdistancing.utility.SnoozeUtils
 
 
 /**
@@ -31,7 +34,7 @@ class NotificationManager {
         title: String,
         message: String
     ) {
-        val builder = getNotificationBuilder(context, title, message)
+        val builder = getNotificationBuilder(context, title, message, true)
         //clear previous notifications
         removeWarningNotifications(context)
         // Show notification
@@ -41,14 +44,15 @@ class NotificationManager {
     fun getNotificationBuilder(
         context: Context,
         title: String,
-        message: String
+        message: String,
+        isWarningNotification: Boolean = false
     ): NotificationCompat.Builder {
         this.context = context
         createNotificationChannel(context)
 
         val pendingIntent = getPendingIntent()
 
-        return NotificationCompat.Builder(context, CHANNEL_GENERAL)
+        val builder = NotificationCompat.Builder(context, CHANNEL_GENERAL)
             .setContentTitle(title)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentText(message)
@@ -56,6 +60,19 @@ class NotificationManager {
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+
+        if(isWarningNotification) {
+            val buttonIntent = getButtonIntent(context)
+            builder.addAction(0, context.getString(R.string.snooze_one_hour), buttonIntent)
+        }
+        return builder
+    }
+
+    private fun getButtonIntent(context: Context): PendingIntent {
+        val buttonIntent = Intent(context, NotificationActionReceiver::class.java)
+        buttonIntent.action = Constants.ACTION_NOTIFICATION_SNOOZE
+        buttonIntent.putExtra(Constants.NOTIFICATION_SNOOZE_TIME, Constants.ONE_HOUR)
+        return PendingIntent.getBroadcast(context, 0, buttonIntent, 0)
     }
 
     private fun getPendingIntent(): PendingIntent {
@@ -72,6 +89,8 @@ class NotificationManager {
         context: Context,
         builder: NotificationCompat.Builder
     ) {
+        if(!SnoozeUtils.isShowNotification(context)) return
+
         with(NotificationManagerCompat.from(context)) {
             notify(WARNING_NOTIFICATION_ID, builder.build())
         }

@@ -3,4 +3,5 @@
     <string name="disable_battery_saver_better_results">Disable Battery Saver (Select \'No Restrictions\')</string>
     <string name="launch_activity">Launch Activity</string>
     <string name="location_updated">Location Updated: %1$s</string>
+    <string name="snooze_one_hour">Snooze: 1 HOUR</string>
 </resources>

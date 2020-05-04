@@ -15,6 +15,17 @@ object Constants {
     const val SAFE_DISTANCE_IN_METERS = 3.0
     const val BLUETOOTH_INTENT_REQUEST_CODE = 123
 
+    const val ACTION_NOTIFICATION_SNOOZE = "notification_snooze"
+    const val ACTION_SNOOZE_TIME_OVER = "snooze_time_over"
+    const val NOTIFICATION_SNOOZE_TIME = "notification_snooze_time"
+
+    // Time in millis
+    const val ZERO_MILLISECOND: Long = 0
+    const val ONE_MILLISECOND: Long = 1
+    const val ONE_SECOND: Long = 1000 * ONE_MILLISECOND
+    const val ONE_MINUTE: Long = 60 * ONE_SECOND
+    const val ONE_HOUR: Long = 60 * ONE_MINUTE
+
     /**
      * An AltBeacon is identified by a unique three part identifier.
      * The first identifier Id1 is normally used across an organization,
@@ -56,6 +67,7 @@ object Constants {
     const val NOTIFICATION_ID = 12345678
 
     const val KEY_REQUESTING_LOCATION_UPDATES = "requesting_location_updates"
+    const val KEY_IS_SHOW_NOTIFICATION = "is_show_notification"
 
     const val LATITUDE = "latitude"
 
